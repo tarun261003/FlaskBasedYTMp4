@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTConvert Pro</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9fafb;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #1f2937;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        header p {
+            font-size: 1rem;
+            margin: 5px 0 0;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: #ffffff;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .input-group input {
+            width: calc(100% - 70px);
+            padding: 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px 0 0 8px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: #2563eb;
+            outline: none;
+        }
+
+        .input-group button {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            padding: 0 20px;
+            border: none;
+            background-color: #2563eb;
+            color: white;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .input-group button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .options label {
+            font-weight: 500;
+        }
+
+        .options input[type="radio"] {
+            margin-right: 5px;
+        }
+
+        .trim-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .trim-option input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background-color: #2563eb;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .download-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        .status-message {
+            margin-top: 20px;
+            font-size: 1rem;
+            color: #333;
+            text-align: center;
+        }
+
+        .status-message.success {
+            color: #10b981;
+        }
+
+        .status-message.error {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>YTConvert Pro</h1>
+        <p>Convert YouTube videos to MP4 or MP3 effortlessly</p>
+    </header>
+    <div class="container">
+        <div class="input-group">
+            <label for="youtube-link">YouTube Link</label>
+            <input type="text" id="youtube-link" placeholder="Paste YouTube link here...">
+            <button id="paste-btn">Paste</button>
+        </div>
+
+        <div class="options">
+            <label><input type="radio" name="format" value="mp4" checked> MP4 (Video)</label>
+            <label><input type="radio" name="format" value="mp3"> MP3 (Audio)</label>
+        </div>
+
+        <div class="trim-option">
+            <input type="checkbox" id="trim">
+            <label for="trim">Trim Video/Audio</label>
+        </div>
+
+        <button class="download-btn" id="download-btn">Convert & Upload</button>
+        <div class="status-message" id="status-message"></div>
+    </div>
+
+    <script>
+        const downloadBtn = document.getElementById('download-btn');
+        const statusMessage = document.getElementById('status-message');
+        const pasteBtn = document.getElementById('paste-btn');
+        const youtubeLinkInput = document.getElementById('youtube-link');
+
+        downloadBtn.addEventListener('click', async () => {
+            const youtubeLink = youtubeLinkInput.value.trim();
+            const format = document.querySelector('input[name="format"]:checked').value;
+            const trim = document.getElementById('trim').checked;
+
+            if (!youtubeLink) {
+                displayMessage('Please provide a valid YouTube link.', 'error');
+                return;
+            }
+
+            displayMessage('Processing your request...', 'info');
+
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: youtubeLink, format, trim })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayMessage('Redirecting to your file...', 'success');
+                    // Open the download link directly
+                    window.location.href = data.download_url;
+                } else {
+                    displayMessage(`Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                displayMessage(`An error occurred: ${error.message}`, 'error');
+            }
+        });
+
+        pasteBtn.addEventListener('click', async () => {
+            try {
+                const text = await navigator.clipboard.readText();
+                youtubeLinkInput.value = text;
+            } catch (error) {
+                displayMessage('Failed to paste from clipboard. Please paste manually.', 'error');
+            }
+        });
+
+        function displayMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+        }
+    </script>
+</body>
+</html>
